@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CEO 생존 게임 — 기업 환경</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --void:#050505;
+  --bone:#ece9e2;
+  --ash:#918f88;
+  --dim:#5c5a55;
+  --hair:rgba(236,233,226,.15);
+  --hair-strong:rgba(236,233,226,.42);
+  --sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'D2Coding',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+h1,h2,h3,p,.opt,.readout,.lead{word-break:keep-all;overflow-wrap:anywhere}
+html,body{height:100%}
+body{background:var(--void);color:var(--bone);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:1px solid var(--bone);outline-offset:3px}
+
+/* ---------- 필름 프레임 ---------- */
+.stage{position:fixed;inset:0;padding:clamp(10px,1.6vw,26px)}
+.film{position:relative;width:100%;height:100%;overflow:hidden;border:1px solid var(--hair);
+  background:radial-gradient(120% 90% at 50% 0%,#101010 0%,#050505 55%,#020202 100%)}
+.film.hit{animation:hit .55s steps(2)}
+@keyframes hit{
+  0%{transform:none;filter:none}
+  14%{transform:translate(-9px,3px);filter:invert(1) contrast(1.4)}
+  28%{transform:translate(8px,-4px);filter:none}
+  44%{transform:translate(-5px,2px);filter:invert(1)}
+  60%{transform:translate(4px,0);filter:none}
+  100%{transform:none;filter:none}
+}
+.mark{position:absolute;width:14px;height:14px;border:0 solid var(--hair-strong);opacity:.5;pointer-events:none}
+.mark.tl{top:10px;left:10px;border-top-width:1px;border-left-width:1px}
+.mark.tr{top:10px;right:10px;border-top-width:1px;border-right-width:1px}
+.mark.bl{bottom:10px;left:10px;border-bottom-width:1px;border-left-width:1px}
+.mark.br{bottom:10px;right:10px;border-bottom-width:1px;border-right-width:1px}
+
+/* ---------- 오버레이 레이어 ---------- */
+.layer{position:absolute;inset:0;pointer-events:none}
+.portrait{display:flex;align-items:flex-end;justify-content:flex-end;opacity:.26;transition:opacity 1.2s ease,transform 1.6s ease;animation:flicker 5.5s infinite}
+.portrait svg{height:96%;width:auto;max-width:none}
+.portrait.center{justify-content:center}
+.portrait.ask{justify-content:flex-start;transform:translateX(-7%)}
+.portrait.end{transform:translateX(20%)}
+@keyframes flicker{0%,100%{opacity:var(--po,.26)}42%{opacity:calc(var(--po,.26) * .82)}44%{opacity:calc(var(--po,.26) * 1.06)}46%{opacity:calc(var(--po,.26) * .88)}78%{opacity:calc(var(--po,.26) * .94)}}
+.scrim{opacity:0;transition:opacity .8s ease}
+.scrim.ask{opacity:1;background:linear-gradient(90deg,rgba(5,5,5,.6) 0%,rgba(5,5,5,.34) 24%,rgba(5,5,5,.72) 52%,rgba(5,5,5,.93) 76%,rgba(5,5,5,.96) 100%)}
+.scrim.end{opacity:1;background:linear-gradient(90deg,rgba(5,5,5,.95) 0%,rgba(5,5,5,.9) 58%,rgba(5,5,5,.66) 100%)}
+.scan{background:repeating-linear-gradient(180deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.42) 2px 3px);mix-blend-mode:multiply;opacity:.55}
+.grain{opacity:.16;mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainmove .7s steps(4) infinite}
+@keyframes grainmove{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-2%)}100%{transform:translate(3%,1%)}}
+.vig{background:radial-gradient(115% 95% at 50% 45%,rgba(0,0,0,0) 42%,rgba(0,0,0,.72) 100%)}
+.tracking{position:absolute;left:0;right:0;height:70px;top:-90px;opacity:0;
+  background:linear-gradient(180deg,rgba(236,233,226,0),rgba(236,233,226,.13),rgba(236,233,226,0));mix-blend-mode:screen}
+.tracking.run{animation:track .55s linear}
+@keyframes track{0%{top:-12%;opacity:.9}100%{top:105%;opacity:0}}
+
+/* ---------- 슬레이트 / 자금 HUD ---------- */
+.slate{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:clamp(16px,2.2vw,26px) clamp(18px,3.4vw,52px);
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;white-space:nowrap}
+.slate .rec::before{content:'';display:inline-block;width:5px;height:5px;background:var(--bone);margin-right:7px;vertical-align:1px;animation:rec 1.9s infinite}
+@keyframes rec{0%,49%{opacity:1}50%,100%{opacity:.15}}
+.funds{color:var(--ash);padding:3px 8px;margin:-3px -8px}
+.funds b{font-weight:400;font-size:14px;letter-spacing:.08em;color:var(--bone);margin-left:6px}
+.funds.up{animation:fup .8s ease}
+.funds.down{animation:fdown .7s steps(2)}
+@keyframes fup{0%,100%{background:transparent}18%{background:rgba(236,233,226,.28)}}
+@keyframes fdown{0%,100%{opacity:1}25%{opacity:.1}50%{opacity:1}75%{opacity:.25}}
+
+/* ---------- 콘텐츠 ---------- */
+.content{position:absolute;inset:0;z-index:3;overflow-y:auto;overscroll-behavior:contain;
+  padding:clamp(58px,8vh,90px) clamp(18px,3.4vw,52px) 104px;
+  transition:opacity .22s ease,filter .22s ease,transform .22s ease}
+.content.out{opacity:0;filter:blur(6px);transform:translateY(6px)}
+.content.in{animation:glitchin .45s steps(3)}
+@keyframes glitchin{
+  0%{clip-path:inset(0 0 62% 0);transform:translateX(-9px)}
+  20%{clip-path:inset(48% 0 12% 0);transform:translateX(7px)}
+  40%{clip-path:inset(12% 0 46% 0);transform:translateX(-4px)}
+  60%{clip-path:inset(70% 0 0 0);transform:translateX(3px)}
+  100%{clip-path:inset(0 0 0 0);transform:translateX(0)}
+}
+.frame{min-height:100%;display:flex;flex-direction:column;justify-content:center}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:var(--ash);text-transform:uppercase}
+
+/* 인트로 */
+.intro{text-align:center}
+.intro h1{font-size:clamp(38px,8.6vw,116px);font-weight:800;letter-spacing:-.045em;line-height:1;margin:26px 0 0;
+  text-shadow:0 0 34px rgba(0,0,0,.9),2px 0 0 rgba(236,233,226,.16),-2px 0 0 rgba(236,233,226,.09)}
+.intro .lead{margin-top:24px;font-size:clamp(13px,1.5vw,16px);color:var(--ash);letter-spacing:-.01em;text-shadow:0 0 20px #050505,0 0 8px #050505}
+.rules{margin:34px auto 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:720px;border-top:1px solid var(--hair-strong);text-align:left;
+  text-shadow:0 0 18px #050505,0 0 8px #050505}
+.rules div{padding:14px 20px 0 0;font-size:12px;line-height:1.75;color:var(--ash)}
+.rules b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim);font-weight:400;margin-bottom:5px}
+.intro .meta{margin-top:22px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ash);line-height:2;text-shadow:0 0 20px #050505,0 0 10px #050505}
+
+/* 미션 */
+.q{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(26px,4.4vw,76px);align-items:center;flex:1}
+.q-left{border-left:1px solid var(--hair);padding-left:clamp(16px,2vw,28px)}
+.q h2{font-size:clamp(26px,4vw,54px);font-weight:800;letter-spacing:-.045em;line-height:1.1;margin:14px 0 0}
+.situation{margin-top:24px;font-size:clamp(13px,1.35vw,15px);line-height:2;color:var(--ash);white-space:pre-line}
+.ask{margin-top:28px;font-size:clamp(15px,1.7vw,19px);font-weight:700;letter-spacing:-.02em}
+.stamp{margin-top:24px;padding:13px 16px;border:1px solid var(--hair);max-width:420px;animation:rise .5s cubic-bezier(.2,.7,.2,1)}
+.stamp .k{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim)}
+.stamp .v{margin-top:8px;font-size:15px;font-weight:700;letter-spacing:-.02em}
+.stamp .v em{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ash);margin-left:10px;font-weight:400}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.optrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:stretch}
+.optrow.solo{grid-template-columns:minmax(0,1fr)}
+.opt{position:relative;overflow:hidden;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;text-align:left;
+  border:1px solid var(--hair);padding:12px 16px;font-size:clamp(13px,1.3vw,15px);line-height:1.5;letter-spacing:-.01em;
+  transition:background .18s ease,border-color .18s ease,color .18s ease,opacity .3s ease}
+.opt .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(236,233,226,.12);transition:width .3s ease;pointer-events:none}
+.opt>span{position:relative}
+.opt .num{font-family:var(--mono);font-size:13px;color:var(--dim)}
+.opt .otext small{display:block;margin-top:2px;font-size:11px;color:var(--dim);letter-spacing:0}
+.grp{display:inline-block;margin-right:8px;padding:1px 6px;border:1px solid var(--hair-strong);font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ash);vertical-align:1px}
+.count{font-family:var(--mono);font-size:16px;min-width:2ch;text-align:right;color:var(--dim)}
+.rv{font-size:10px;letter-spacing:.14em;white-space:nowrap;min-width:0}
+button.opt:hover{border-color:var(--hair-strong);background:rgba(236,233,226,.045)}
+.opt.lead{border-color:var(--hair-strong)}
+.opt.lead .count{color:var(--bone)}
+.opt.tie{border-color:var(--bone);animation:pick .34s ease}
+.opt.bump{animation:bump .22s ease}
+@keyframes bump{0%{transform:none}40%{transform:translateX(-4px)}100%{transform:none}}
+@keyframes pick{0%{transform:translateX(0)}22%{transform:translateX(-7px)}48%{transform:translateX(5px)}100%{transform:translateX(0)}}
+.minus{width:42px;border:1px solid var(--hair);font-family:var(--mono);font-size:16px;color:var(--dim);transition:border-color .18s,color .18s,opacity .18s}
+.minus:hover{border-color:var(--hair-strong);color:var(--bone)}
+.minus[disabled]{opacity:.25;pointer-events:none}
+.votebar{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim)}
+.votebar .warn{color:var(--bone)}
+
+.opt.picked{background:var(--bone);color:#070706;border-color:var(--bone);animation:pick .34s ease}
+.opt.picked .num,.opt.picked .otext small,.opt.picked .count{color:#070706}
+.opt.picked .grp{color:#070706;border-color:rgba(7,7,6,.45)}
+.opt.answer{border-color:var(--bone)}
+.opt.muted{opacity:.42}
+
+.readout{margin-top:20px;border-top:1px solid var(--hair-strong);padding-top:16px;animation:rise .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.readout .chose{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim)}
+.readout .row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:10px}
+.readout .trait{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.readout .trait strong{font-size:clamp(22px,3vw,34px);font-weight:800;letter-spacing:-.04em}
+.readout .trait span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ash)}
+.delta{font-family:var(--mono);font-size:clamp(26px,3.6vw,40px);letter-spacing:-.02em;line-height:1}
+.readout .desc{margin-top:12px;font-size:13px;line-height:1.85;color:var(--ash)}
+.readout .sum{margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim)}
+.linkbtn{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--dim);border-bottom:1px solid var(--hair);padding-bottom:2px}
+.linkbtn:hover{color:var(--bone);border-color:var(--hair-strong)}
+
+/* 결과 */
+.result .flash-in{animation:flash .5s ease}
+@keyframes flash{0%{filter:invert(1)}30%{filter:invert(0)}42%{filter:invert(1)}100%{filter:invert(0)}}
+.result .bigtype{margin-top:14px;max-width:100%;font-size:clamp(40px,8.6vw,128px);font-weight:800;letter-spacing:-.055em;line-height:.9;
+  text-shadow:3px 0 0 rgba(236,233,226,.2),-3px 0 0 rgba(236,233,226,.1),0 0 60px rgba(236,233,226,.12);animation:jitter 6s infinite}
+@keyframes jitter{0%,96%,100%{transform:translateX(0)}97%{transform:translateX(-3px)}98%{transform:translateX(2px)}}
+.result .ko{margin-top:14px;font-size:clamp(20px,2.8vw,32px);font-weight:800;letter-spacing:-.04em}
+.fund-line{margin-top:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--ash)}
+.fund-line b{font-weight:400;font-size:clamp(20px,2.6vw,30px);color:var(--bone);letter-spacing:.02em;margin:0 4px}
+.result .say{margin-top:12px;max-width:54ch;font-size:clamp(13px,1.4vw,15px);line-height:1.9;color:var(--ash)}
+.res-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(26px,4vw,66px);margin-top:32px;align-items:start}
+.blk{border-top:1px solid var(--hair-strong);padding-top:20px}
+.blk h3{font-size:11px;letter-spacing:.14em;color:var(--ash);font-weight:400;margin-bottom:14px}
+.bar-row{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) 46px;gap:14px;align-items:center;padding:5px 0}
+.bar-label{font-size:12px;color:var(--dim)}
+.bar-track{position:relative;display:block;height:12px;border:1px solid var(--hair)}
+.bar-fill{display:block;height:100%;width:0;transition:width 1s cubic-bezier(.2,.7,.2,1);background:repeating-linear-gradient(90deg,var(--ash) 0 6px,rgba(0,0,0,0) 6px 9px)}
+.bar-val{font-family:var(--mono);font-size:11px;color:var(--dim);text-align:right}
+.bar-row.top .bar-label,.bar-row.top .bar-val{color:var(--bone);font-weight:700}
+.bar-row.top .bar-fill{background:repeating-linear-gradient(90deg,var(--bone) 0 6px,rgba(0,0,0,0) 6px 9px)}
+.bar-row.top .bar-track{border-color:var(--hair-strong)}
+.rv-head,.rv-row{display:grid;grid-template-columns:26px minmax(0,1fr) 62px 46px 52px;gap:10px;align-items:center}
+.rv-head{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);padding-bottom:8px;border-bottom:1px solid var(--hair)}
+.rv-row{padding:9px 0;border-bottom:1px solid var(--hair);font-size:12px}
+.rv-row .rn{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.rv-row .rt{color:var(--bone);letter-spacing:-.01em}
+.rv-row .rt small{display:block;font-size:10px;color:var(--dim);margin-top:1px}
+.rv-row .rc,.rv-row .rs{font-size:11px;color:var(--ash)}
+.rv-row .rp{font-family:var(--mono);font-size:12px;text-align:right;color:var(--bone)}
+.rv-head span:last-child{text-align:right}
+.wrapup{margin-top:26px;padding-left:14px;border-left:1px solid var(--hair-strong);max-width:62ch;font-size:12.5px;line-height:1.9;color:var(--ash)}
+.wrapup b{color:var(--bone);font-weight:700}
+
+/* ---------- 하단 내비 ---------- */
+.nav{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:16px clamp(18px,3.4vw,52px);border-top:1px solid var(--hair);background:linear-gradient(to top,rgba(5,5,5,.97) 45%,rgba(5,5,5,0))}
+.btn{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:12px 20px;border:1px solid var(--hair-strong);color:var(--bone);
+  transition:background .18s ease,color .18s ease,opacity .18s ease,border-color .18s ease}
+.btn:hover{background:var(--bone);color:#070706;border-color:var(--bone)}
+.btn[disabled]{opacity:.2;pointer-events:none}
+.btn.ghost{border-color:transparent;color:var(--dim);padding-left:0}
+.btn.ghost:hover{background:none;color:var(--bone)}
+.btn.solid{background:var(--bone);color:#070706;border-color:var(--bone)}
+.btn.solid:hover{background:transparent;color:var(--bone)}
+.ticks{display:flex;gap:6px;align-items:center}
+.tick{width:22px;height:1px;background:var(--hair)}
+.tick.done{background:var(--ash)}
+.tick.now{background:var(--bone);height:3px}
+.hint{position:absolute;left:0;right:0;bottom:70px;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:#2e2d2b;pointer-events:none;z-index:6}
+
+@media (max-width:980px){
+  .q{grid-template-columns:minmax(0,1fr);gap:28px;align-items:start}
+  .res-grid{grid-template-columns:minmax(0,1fr);gap:28px;margin-top:28px}
+  .frame{justify-content:flex-start}
+  .portrait{opacity:.13 !important;--po:.13}
+  .portrait.center{opacity:.4 !important;--po:.4}
+  .portrait.ask{transform:translateX(8%)}
+  .content{padding-top:64px}
+  .hint{display:none}
+  .slate{font-size:9px;letter-spacing:.14em}
+  .slate .mid{display:none}
+  .rules{grid-template-columns:minmax(0,1fr)}
+  .rules div{padding-right:0}
+}
+@media (max-width:600px){
+  .nav{padding:12px 16px}
+  .btn{padding:11px 13px;font-size:10px;letter-spacing:.14em}
+  .ticks{display:none}
+  .rv-head,.rv-row{grid-template-columns:22px minmax(0,1fr) 54px 40px 44px;gap:6px}
+  .bar-row{grid-template-columns:48px minmax(0,1fr) 40px;gap:10px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="film" id="film">
+    <div class="layer portrait" id="portrait"></div>
+    <div class="layer scrim" id="scrim"></div>
+    <div class="layer scan"></div>
+    <div class="layer grain"></div>
+    <div class="layer vig"></div>
+    <div class="tracking" id="tracking"></div>
+    <span class="mark tl"></span><span class="mark tr"></span><span class="mark bl"></span><span class="mark br"></span>
+
+    <div class="slate">
+      <span class="rec" id="slateL">Frame 01 / 08</span>
+      <span class="mid">CEO Survival Game</span>
+      <span class="funds" id="fundsWrap">Funds<b id="funds">100억</b></span>
+    </div>
+
+    <div class="content" id="content"></div>
+
+    <div class="hint">→ 확정 / 다음 &nbsp;·&nbsp; ← 이전 &nbsp;·&nbsp; 1–6 한 표 &nbsp;·&nbsp; ⌫ 되돌리기 &nbsp;·&nbsp; F 전체화면 &nbsp;·&nbsp; R 처음부터</div>
+
+    <div class="nav">
+      <button class="btn ghost" id="back">← Back</button>
+      <div class="ticks" id="ticks"></div>
+      <button class="btn solid" id="next">Start Game →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   1. 기업 환경 분류
+   ========================================================= */
+const START = 100;
+const ENVS = [
+  {id:'internal', grp:'내부', name:'내부 환경',        desc:'인력·자금·기술·조직문화 등 기업 안의 조건'},
+  {id:'market',   grp:'외부', name:'경쟁·시장 환경',    desc:'경쟁 기업·소비자·거래처'},
+  {id:'economic', grp:'외부', name:'경제적 환경',       desc:'환율·금리·물가·경기'},
+  {id:'legal',    grp:'외부', name:'정치·법적 환경',    desc:'법률·규제·정부 정책'},
+  {id:'social',   grp:'외부', name:'사회·문화적 환경',  desc:'유행·가치관·인구·생활양식'},
+  {id:'tech',     grp:'외부', name:'기술적 환경',       desc:'새로운 기술의 등장과 확산'}
+];
+const TIERS = {
+  best:{label:'최선', word:'최선의 선택'},
+  ok:  {label:'차선', word:'무난한 선택'},
+  weak:{label:'미흡', word:'아쉬운 선택'},
+  bad: {label:'위험', word:'위험한 선택'}
+};
+const CLS_PTS = {full:20, part:10, miss:0};
+
+/* =========================================================
+   2. 미션 6개 (선택지는 화면에 보이는 순서 그대로)
+   ========================================================= */
+const MISSIONS = [
+  {
+    short:'직원 능력 부족', fig:'B', env:'internal',
+    title:'직원들의 업무 능력이 부족하다.',
+    situation:'창업 1년 차. 새로 뽑은 직원들이 맡은 일을 제때 끝내지 못하고\n같은 실수를 반복하고 있다.\n이대로면 다음 달 납품 일정도 지키기 어렵다.',
+    why:'문제의 원인이 회사 안, 곧 직원의 능력(인적 자원)에 있다. 기업이 스스로 바꿀 수 있는 내부 환경이다.',
+    options:[
+      {tier:'weak', pts:-10, text:'일 잘하는 직원 몇 명에게만 일을 몰아서 맡긴다.',
+        note:'당장은 일이 굴러가도 특정 직원에게 부담이 쏠려 불만이 쌓인다. 능력이 부족한 직원은 그대로라서 원인이 남는다.'},
+      {tier:'bad',  pts:-30, text:'실수한 직원들을 모두 해고하고 새로 뽑는다.',
+        note:'원인을 분석하지 않고 사람만 바꾸면 채용·교육 비용이 다시 들고, 같은 문제가 반복될 수 있다.'},
+      {tier:'best', pts:30,  text:'직무 교육과 멘토링을 도입하고, 성과에 따른 보상 기준을 함께 만든다.',
+        note:'능력 부족은 내부 환경의 문제다. 교육으로 역량을 키우고 보상으로 동기를 주는 것이 가장 직접적인 해결이다.'},
+      {tier:'ok',   pts:10,  text:'업무 매뉴얼을 만들어 나눠 주고 각자 익히게 한다.',
+        note:'방향은 좋지만 문서만 나눠 주면 실제로 익혔는지 알 수 없다. 교육과 피드백이 함께 있어야 한다.'}
+    ]
+  },
+  {
+    short:'경쟁사 신제품', fig:'C', env:'market',
+    title:'경쟁 기업이 새로운 제품을 출시했다.',
+    situation:'출시를 준비하는 사이, 경쟁 기업이\n더 저렴하고 기능이 많은 신제품을 먼저 내놓았다.\n소비자와 언론의 관심이 그쪽으로 쏠리고 있다.',
+    why:'경쟁 기업은 기업 밖에서 시장을 두고 겨루는 상대다. 기업이 마음대로 바꿀 수 없는 외부 환경 가운데, 경쟁·시장 환경에 해당한다.',
+    options:[
+      {tier:'weak', pts:-10, text:'신경 쓰지 않고 원래 계획대로 출시한다.',
+        note:'경쟁 기업이 시장의 기준을 바꿨는데 계획을 그대로 두면 우리 제품은 비교 대상에서 밀려난다.'},
+      {tier:'ok',   pts:10,  text:'경쟁 제품보다 무조건 싸게 가격을 정해 출시한다.',
+        note:'빠른 대응이지만 이익이 줄고, 더 큰 기업이 가격을 내리면 버티기 어렵다. 우리만의 강점이 함께 있어야 한다.'},
+      {tier:'bad',  pts:-30, text:'경쟁 제품을 그대로 따라 한 비슷한 제품을 만든다.',
+        note:'모방한 제품은 소비자에게 새로울 게 없고, 특허나 디자인 문제로 법적 분쟁이 생길 수도 있다.'},
+      {tier:'best', pts:30,  text:'경쟁 제품을 분석해 우리만의 강점을 찾고, 그에 맞춰 전략을 수정한다.',
+        note:'경쟁 제품과 비교해 차별화할 지점을 찾고 전략을 고치는 것이 외부 환경 변화에 대응하는 기본이다.'}
+    ]
+  },
+  {
+    short:'디자인 취향 변화', fig:'D', env:'social',
+    title:'소비자들이 새로운 디자인을 선호한다.',
+    situation:'요즘 소비자들 사이에서\n단순하고 친환경적인 디자인이 인기를 끌고 있다.\n화려한 장식이 많은 우리 제품의 판매량이 조금씩 줄고 있다.',
+    why:'소비자의 취향과 유행, 가치관의 변화는 사회 전체의 분위기에서 나온다. 외부 환경 가운데 사회·문화적 환경이다.',
+    options:[
+      {tier:'bad',  pts:-30, text:'유행은 금방 지나가니 무시하고 기존 디자인을 고수한다.',
+        note:'취향의 변화가 일시적인지는 조사해 봐야 안다. 확인 없이 무시하면 고객이 서서히 떠난다.'},
+      {tier:'best', pts:30,  text:'소비자 조사로 취향의 변화를 확인하고, 그에 맞춰 디자인을 개선한다.',
+        note:'변화를 조사로 확인하고 제품에 실제로 반영했다. 사회·문화적 변화를 기회로 바꾸는 방식이다.'},
+      {tier:'weak', pts:-10, text:'제품은 그대로 두고 광고 문구만 "친환경"으로 바꾼다.',
+        note:'제품은 그대로인데 광고만 바꾸면 소비자가 금방 알아채고 기업의 신뢰를 잃을 수 있다.'},
+      {tier:'ok',   pts:10,  text:'새 디자인을 한정판으로 시험 판매해 반응을 살펴본다.',
+        note:'위험을 줄이며 반응을 확인하는 좋은 방법이다. 다만 소비자 조사가 함께 있었다면 더 정확했을 것이다.'}
+    ]
+  },
+  {
+    short:'환율 급등', fig:'E', env:'economic',
+    title:'환율이 급등해 원자재 값이 올랐다.',
+    situation:'제품에 쓰는 원자재를 대부분 수입하고 있는데\n환율이 갑자기 올라\n한 달 만에 원자재 구입비가 30% 늘었다.',
+    why:'환율·물가·금리는 나라와 세계 경제의 흐름이다. 기업이 바꿀 수 없는 외부 환경 가운데 경제적 환경이다.',
+    options:[
+      {tier:'weak', pts:-10, text:'오른 원가만큼 제품 가격을 전부 올린다.',
+        note:'원가 상승분을 모두 가격에 얹으면 소비자가 떠나 판매량이 줄고, 오히려 이익이 줄 수 있다.'},
+      {tier:'ok',   pts:10,  text:'이익이 줄어도 당분간 가격을 그대로 두고 상황을 지켜본다.',
+        note:'당장 고객을 지킬 수는 있지만, 환율이 계속 높으면 손실이 쌓여 오래 버티기 어렵다.'},
+      {tier:'bad',  pts:-30, text:'비용을 줄이려고 품질이 낮은 재료로 몰래 바꾼다.',
+        note:'몰래 재료를 바꾸면 품질 문제가 생기고, 들통나는 순간 기업의 신뢰가 무너진다.'},
+      {tier:'best', pts:30,  text:'공급처를 다양하게 만들고 대체 자재를 찾으면서, 원가 상승분은 일부만 가격에 반영한다.',
+        note:'환율 같은 경제적 환경은 기업이 바꿀 수 없다. 그래서 공급처를 늘리고 대체 자재를 찾아 영향을 줄이는 방식이 알맞다.'}
+    ]
+  },
+  {
+    short:'규제 강화', fig:'B', env:'legal',
+    title:'새로운 법으로 규제가 강화됐다.',
+    situation:'정부가 포장재의 재활용 기준을 강화하는 법을 발표했다.\n6개월 뒤부터는 기준에 맞지 않는 제품은\n판매할 수 없다.',
+    why:'법률과 정부 정책은 기업이 따라야 하는 바깥의 규칙이다. 외부 환경 가운데 정치·법적 환경이다.',
+    options:[
+      {tier:'best', pts:30,  text:'새 기준의 내용을 정확히 확인하고, 시행 전에 포장재를 바꿔 미리 대응한다.',
+        note:'법과 규제는 반드시 따라야 하는 바깥의 규칙이다. 시행 전에 확인하고 준비하면 비용도 줄고 판매도 끊기지 않는다.'},
+      {tier:'ok',   pts:10,  text:'기준을 지키는 다른 회사의 방식이 자리 잡은 뒤에 따라 한다.',
+        note:'위험은 적지만, 시행일까지 준비를 마치지 못하면 판매가 중단될 수 있다.'},
+      {tier:'weak', pts:-10, text:'단속이 심하지 않을 테니 일단 기존 포장 그대로 판매한다.',
+        note:'단속을 기대하며 버티면 과태료와 판매 중지 위험을 스스로 떠안게 된다.'},
+      {tier:'bad',  pts:-30, text:'규제가 부당하다며 법을 무시하고 판매를 계속한다.',
+        note:'법을 어기는 기업은 처벌을 받고 사회적 신뢰를 잃는다. 규제에 문제가 있다면 의견을 내는 절차가 따로 있다.'}
+    ]
+  },
+  {
+    short:'신기술 등장', fig:'D', env:'tech',
+    title:'새로운 기술이 업계를 바꾸고 있다.',
+    situation:'인공지능을 활용한 자동 상담 기술이 등장해\n업계 전체의 고객 응대 방식이 빠르게 바뀌고 있다.\n우리 회사는 아직 전화 상담만 하고 있다.',
+    why:'새로운 기술의 등장과 확산은 기업 밖에서 일어나는 변화다. 외부 환경 가운데 기술적 환경이다.',
+    options:[
+      {tier:'bad',  pts:-30, text:'새 기술은 거품이라 여기고 어떤 검토도 하지 않는다.',
+        note:'새 기술을 검토조차 하지 않으면 고객 응대 수준에서 계속 뒤처지게 된다.'},
+      {tier:'weak', pts:-10, text:'비용을 따져 보지 않고 가장 비싼 최신 시스템을 한 번에 전부 도입한다.',
+        note:'기술은 필요하지만 비용과 효과를 따지지 않고 한 번에 투자하면 자금이 크게 묶이고 실패 위험도 커진다.'},
+      {tier:'best', pts:30,  text:'업무에 맞는 기술을 골라 일부 단계에 먼저 도입하고, 직원 교육도 함께 준비한다.',
+        note:'필요한 부분부터 도입해 효과를 확인하고 교육까지 준비했다. 기술 변화에 단계적으로 적응하는 방법이다.'},
+      {tier:'ok',   pts:10,  text:'기술이 충분히 자리 잡을 때까지 1~2년 더 지켜본다.',
+        note:'위험은 적지만 그동안 경쟁 기업이 앞서갈 수 있다. 지켜보는 동안에도 준비는 시작해야 한다.'}
+    ]
+  }
+];
+
+const TOTAL = MISSIONS.length + 2;      // 인트로 + 미션 + 결과
+const MAX_FUNDS = START + MISSIONS.length * 50;
+const CIRC = ['①','②','③','④','⑤','⑥'];
+
+const GRADES = [
+  {min:360, en:'UNICORN',  ko:'유니콘 기업', say:'어떤 위기에서도 문제의 뿌리를 정확히 짚고, 가장 알맞은 해결책을 골랐다. 시장이 주목하는 기업이 됐다.'},
+  {min:260, en:'GROWTH',   ko:'성장 기업',   say:'대부분의 위기를 잘 넘겼다. 몇 번의 아쉬운 판단만 줄이면 더 크게 성장할 수 있다.'},
+  {min:160, en:'SURVIVAL', ko:'생존 기업',   say:'위기를 겨우 넘기며 버텨냈다. 문제가 어느 환경에서 왔는지 먼저 파악하는 습관이 필요하다.'},
+  {min:1,   en:'CRISIS',   ko:'파산 위기',   say:'잘못된 판단이 겹쳐 자금이 크게 줄었다. 환경을 잘못 읽으면 해결책도 빗나간다.'},
+  {min:-Infinity, en:'BANKRUPT', ko:'파산',   say:'자금이 바닥났다. 하지만 기업 환경을 분석하는 법을 배웠다면 다음 도전은 다를 것이다.'}
+];
+
+/* =========================================================
+   3. 인물 이미지 (SVG 직접 생성)
+   ========================================================= */
+function svgDefs(id){
+  return `
+  <defs>
+    <radialGradient id="skin${id}" cx="40%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#f6f4ee"/><stop offset="46%" stop-color="#c2c0b9"/><stop offset="100%" stop-color="#2a2a27"/>
+    </radialGradient>
+    <linearGradient id="hair${id}" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#4a4844"/><stop offset="60%" stop-color="#1c1c1a"/><stop offset="100%" stop-color="#0a0a09"/>
+    </linearGradient>
+    <linearGradient id="cloth${id}" x1="0.3" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#c9c6bf"/><stop offset="42%" stop-color="#6e6c67"/><stop offset="100%" stop-color="#090908"/>
+    </linearGradient>
+    <filter id="soft${id}" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="5"/></filter>
+    <filter id="soft2${id}" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="12"/></filter>
+  </defs>`;
+}
+function bust(id,o){
+  const t=o.tilt||0;
+  return `
+  <g transform="translate(${o.x||0},${o.y||0}) scale(${o.s||1})" opacity="${o.op||1}">
+    <path d="M-46 60 L46 60 L52 286 L-52 286 Z" fill="url(#skin${id})"/>
+    <path d="M-240 700 C-230 456 -134 306 -54 290 L54 290 C134 306 230 456 240 700 Z" fill="url(#cloth${id})"/>
+    <path d="M-54 168 C-30 214 30 214 54 168 L54 292 L-54 292 Z" fill="#141412" opacity=".5"/>
+    <g transform="rotate(${t})">
+      <path d="M-138 40 C-138 -132 -74 -196 0 -196 C74 -196 138 -132 138 40 C138 96 118 128 96 138 C104 40 96 -60 0 -60 C-96 -60 -104 40 -96 138 C-118 128 -138 96 -138 40 Z" fill="url(#hair${id})"/>
+      <ellipse cx="0" cy="10" rx="112" ry="146" fill="url(#skin${id})"/>
+      <ellipse cx="-44" cy="-18" rx="27" ry="12" fill="#131311" opacity=".44"/>
+      <ellipse cx="46" cy="-20" rx="27" ry="12" fill="#131311" opacity=".44"/>
+      <path d="M-72 -50 C-56 -62 -30 -60 -18 -50" stroke="#131311" stroke-width="8" fill="none" opacity=".34"/>
+      <path d="M18 -52 C32 -62 58 -64 74 -50" stroke="#131311" stroke-width="8" fill="none" opacity=".34"/>
+      <ellipse cx="4" cy="44" rx="13" ry="25" fill="#131311" opacity=".26"/>
+      <ellipse cx="2" cy="94" rx="30" ry="11" fill="#131311" opacity=".46"/>
+      <ellipse cx="-88" cy="26" rx="28" ry="56" fill="#131311" opacity=".3"/>
+      <ellipse cx="90" cy="30" rx="24" ry="50" fill="#131311" opacity=".2"/>
+      <path d="M-150 -28 C-150 -170 -80 -214 0 -214 C80 -214 150 -170 150 -28 C130 -122 74 -150 0 -150 C-74 -150 -130 -122 -150 -28 Z" fill="url(#hair${id})"/>
+    </g>
+  </g>`;
+}
+const FIGURES = {
+  A:`<svg viewBox="0 0 620 860" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${svgDefs('A')}
+      <g filter="url(#softA)" transform="translate(310,190)">
+        ${bust('A',{tilt:-4})}
+        <path d="M160 700 C132 566 108 452 76 330 C58 292 112 268 132 306 C164 372 190 512 216 700 Z" fill="url(#clothA)" opacity=".9"/>
+        <ellipse cx="88" cy="252" rx="50" ry="44" fill="url(#skinA)"/>
+        <ellipse cx="60" cy="212" rx="16" ry="30" transform="rotate(18 60 212)" fill="url(#skinA)"/>
+        <ellipse cx="92" cy="198" rx="14" ry="32" transform="rotate(6 92 198)" fill="url(#skinA)"/>
+      </g></svg>`,
+  B:`<svg viewBox="0 0 620 860" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${svgDefs('B')}
+      <g filter="url(#softB)" transform="translate(310,200)">${bust('B',{tilt:2,s:1.02})}</g></svg>`,
+  C:`<svg viewBox="0 0 620 860" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${svgDefs('C')}
+      <g filter="url(#soft2C)" transform="translate(430,300) scale(.62)" opacity=".5">${bust('C',{tilt:8})}</g>
+      <g filter="url(#softC)" transform="translate(250,230) scale(.92)">${bust('C',{tilt:-6})}</g></svg>`,
+  D:`<svg viewBox="0 0 620 860" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${svgDefs('D')}
+      <g filter="url(#soft2D)" transform="translate(196,296) scale(.72)" opacity=".62">${bust('D',{tilt:11})}</g>
+      <g filter="url(#softD)" transform="translate(398,236) scale(.88)">${bust('D',{tilt:-9})}</g></svg>`,
+  E:`<svg viewBox="0 0 620 860" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${svgDefs('E')}
+      <g filter="url(#soft2E)" transform="translate(310,214) scale(1.06)">${bust('E',{tilt:-13})}</g></svg>`
+};
+
+/* =========================================================
+   4. 상태
+   ========================================================= */
+let idx = 0;                       // 0 인트로 · 1~6 미션 · 7 결과
+let M = freshState();              // 미션별 진행 상태
+let tally = [], hist = [], tie = [];
+let busy = false;
+
+// phase 0: 환경 분류 투표 · 1: 분류 결과 · 2: 해결책 투표 · 3: 해결책 결과
+function freshState(){ return MISSIONS.map(() => ({phase:0, cls:null, sol:null})); }
+
+const $film = document.getElementById('film');
+const $content = document.getElementById('content');
+const $portrait = document.getElementById('portrait');
+const $scrim = document.getElementById('scrim');
+const $slateL = document.getElementById('slateL');
+const $funds = document.getElementById('funds');
+const $fundsWrap = document.getElementById('fundsWrap');
+const $back = document.getElementById('back');
+const $next = document.getElementById('next');
+const $ticks = document.getElementById('ticks');
+const $tracking = document.getElementById('tracking');
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const pad = n => String(n).padStart(2,'0');
+const fmt = n => n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '±0';
+const envIndex = mi => ENVS.findIndex(e => e.id === MISSIONS[mi].env);
+
+/* ---------- 점수 계산 ---------- */
+function clsResult(mi){
+  const s = M[mi];
+  if(s.cls === null) return null;
+  const ans = envIndex(mi);
+  if(s.cls === ans) return {key:'full', label:'정답', pts:CLS_PTS.full};
+  if(ENVS[s.cls].grp === ENVS[ans].grp) return {key:'part', label:'부분 정답', pts:CLS_PTS.part};
+  return {key:'miss', label:'오답', pts:CLS_PTS.miss};
+}
+function clsPts(mi){ const s = M[mi]; return (s.phase >= 1 && s.cls !== null) ? clsResult(mi).pts : 0; }
+function solPts(mi){ const s = M[mi]; return (s.phase >= 3 && s.sol !== null) ? MISSIONS[mi].options[s.sol].pts : 0; }
+function missionPts(mi){ return clsPts(mi) + solPts(mi); }
+function currentFunds(){ return START + MISSIONS.reduce((a,_,i) => a + missionPts(i), 0); }
+function gradeOf(f){ return GRADES.find(g => f >= g.min); }
+
+/* ---------- 투표 ---------- */
+function inVote(){ return idx >= 1 && idx <= MISSIONS.length && (M[idx-1].phase === 0 || M[idx-1].phase === 2); }
+function optionCount(){ return M[idx-1].phase === 0 ? ENVS.length : MISSIONS[idx-1].options.length; }
+function resetVotes(){ tally = inVote() ? new Array(optionCount()).fill(0) : []; hist = []; tie = []; }
+function totalVotes(){ return tally.reduce((a,b) => a + b, 0); }
+
+function addVote(i){
+  if(!inVote() || busy || i < 0 || i >= tally.length || tally[i] >= 99) return;
+  tally[i]++; hist.push(i); tie = [];
+  updateVoteUI();
+  const el = $content.querySelector('.opt[data-opt="' + i + '"]');
+  if(el){ el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+}
+function removeVote(i){
+  if(!inVote() || tally[i] <= 0) return;
+  tally[i]--;
+  const k = hist.lastIndexOf(i); if(k >= 0) hist.splice(k, 1);
+  tie = []; updateVoteUI();
+}
+function undoVote(){
+  if(!inVote() || !hist.length) return;
+  const i = hist.pop(); tally[i]--; tie = []; updateVoteUI();
+}
+function updateVoteUI(){
+  const rows = $content.querySelectorAll('.opt[data-opt]');
+  if(rows.length){
+    const total = totalVotes(), max = Math.max(0, ...tally);
+    rows.forEach(el => {
+      const i = +el.dataset.opt;
+      el.querySelector('.count').textContent = tally[i];
+      el.querySelector('.fill').style.width = total ? (tally[i] / total * 100) + '%' : '0%';
+      el.classList.toggle('lead', max > 0 && tally[i] === max);
+      el.classList.toggle('tie', tie.includes(i));
+    });
+    $content.querySelectorAll('[data-minus]').forEach(b => { b.disabled = tally[+b.dataset.minus] === 0; });
+    const vt = document.getElementById('vtotal'), vm = document.getElementById('vmsg');
+    if(vt) vt.textContent = 'TOTAL ' + total + '표';
+    if(vm){
+      vm.classList.toggle('warn', tie.length > 0);
+      vm.textContent = tie.length ? '동점입니다 — 한 번 더 손을 들어 주세요'
+                     : total ? '다수결 확정을 눌러 주세요' : '손을 든 만큼 눌러 주세요';
+    }
+  }
+  syncNav();
+}
+function confirmVotes(){
+  if(!inVote() || totalVotes() === 0) return;
+  const max = Math.max(...tally);
+  const leaders = tally.map((v,i) => v === max ? i : -1).filter(i => i >= 0);
+  if(leaders.length > 1){
+    tie = leaders; updateVoteUI();
+    if(!REDUCED){ $content.querySelectorAll('.opt.tie').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }); }
+    return;
+  }
+  commit(leaders[0]);
+}
+function commit(i){
+  const s = M[idx-1];
+  let d = 0;
+  if(s.phase === 0){ s.cls = i; s.phase = 1; d = clsPts(idx-1); }
+  else if(s.phase === 2){ s.sol = i; s.phase = 3; d = solPts(idx-1); }
+  paint();
+  fx(d);
+}
+function resetMission(){
+  if(idx < 1 || idx > MISSIONS.length) return;
+  M[idx-1] = {phase:0, cls:null, sol:null};
+  paint();
+}
+
+/* ---------- 효과 ---------- */
+function runTracking(){ $tracking.classList.remove('run'); void $tracking.offsetWidth; $tracking.classList.add('run'); }
+function fx(d){
+  if(REDUCED) return;
+  if(d < 0){ $film.classList.remove('hit'); void $film.offsetWidth; $film.classList.add('hit'); }
+  else runTracking();
+}
+let shown = START, raf = 0;
+function renderFunds(v){ $funds.textContent = (v < 0 ? '−' : '') + Math.abs(v) + '억'; }
+function tweenFunds(to){
+  const from = shown;
+  if(from === to){ renderFunds(to); return; }
+  cancelAnimationFrame(raf);
+  $fundsWrap.classList.remove('up','down'); void $fundsWrap.offsetWidth;
+  $fundsWrap.classList.add(to > from ? 'up' : 'down');
+  if(REDUCED){ shown = to; renderFunds(to); return; }
+  const t0 = performance.now(), dur = 650;
+  const step = t => {
+    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    shown = Math.round(from + (to - from) * e); renderFunds(shown);
+    if(k < 1) raf = requestAnimationFrame(step); else { shown = to; renderFunds(to); }
+  };
+  raf = requestAnimationFrame(step);
+}
+
+/* =========================================================
+   5. 화면 그리기
+   ========================================================= */
+function frameHTML(){
+  if(idx === 0) return introHTML();
+  if(idx === TOTAL - 1) return resultHTML();
+  return missionHTML(idx - 1);
+}
+
+function introHTML(){
+  return `
+  <div class="frame intro">
+    <div class="eyebrow">CEO Survival Game</div>
+    <h1>CEO<br>생존 게임</h1>
+    <p class="lead">위기는 예고 없이 찾아온다. 우리 반의 다수결로 기업을 지켜라.</p>
+    <div class="rules">
+      <div><b>01 · 환경 분류</b>문제가 어떤 환경에서 왔는지 맞히면 최대 +20억</div>
+      <div><b>02 · 해결책 선택</b>알맞은 해결책을 고르면 최대 +30억, 위험한 선택은 −30억</div>
+      <div><b>03 · 다수결</b>손을 든 만큼 선택지를 누르고, 가장 많은 표가 결정한다</div>
+    </div>
+    <div class="meta">미션 0${MISSIONS.length} · 시작 자금 ${START}억 · 자금이 0 이하면 파산</div>
+  </div>`;
+}
+
+function missionHTML(mi){
+  const m = MISSIONS[mi], s = M[mi];
+  const step = s.phase < 2 ? 1 : 2;
+  const ask = step === 1 ? '이 문제는 어떤 환경의 문제일까?' : 'CEO로서 어떤 해결책을 고를까?';
+  let stamp = '';
+  if(s.phase >= 2){
+    const ans = ENVS[envIndex(mi)], res = clsResult(mi);
+    stamp = `<div class="stamp"><div class="k">STEP 1 · 환경 분류</div>
+      <div class="v">${esc(ans.name)}<em>${res.label} ${fmt(res.pts)}억</em></div></div>`;
+  }
+
+  let right = '';
+  if(s.phase === 0){
+    right = `<div class="opts">${ENVS.map((e,i) => voteRow(i, `<span class="grp">${e.grp}</span>${esc(e.name)}<small>${esc(e.desc)}</small>`)).join('')}</div>${voteBar()}`;
+  } else if(s.phase === 1){
+    const ans = envIndex(mi), res = clsResult(mi);
+    const rows = ENVS.map((e,i) => {
+      const picked = i === s.cls, right_ = i === ans;
+      const cls = (picked ? 'picked ' : '') + (right_ ? 'answer ' : '') + (!picked && !right_ ? 'muted' : '');
+      const tag = picked && right_ ? '선택 · 정답' : picked ? '선택' : right_ ? '정답' : '';
+      return revealRow(i, cls, `<span class="grp">${e.grp}</span>${esc(e.name)}`, tag);
+    }).join('');
+    const lead = res.key === 'part' ? '같은 외부 환경이지만 세부 종류가 다르다. ' : res.key === 'miss' ? `정답은 ${ENVS[ans].name}이다. ` : '';
+    right = `<div class="opts">${rows}</div>
+      <div class="readout">
+        <div class="chose">STEP 1 · 환경 분류 · 다수결 결과</div>
+        <div class="row"><div class="trait"><strong>${res.label}</strong><span>${res.key === 'full' ? esc(ENVS[ans].name) : '정답 · ' + esc(ENVS[ans].name)}</span></div>
+          <div class="delta">${fmt(res.pts)}억</div></div>
+        <div class="desc">${esc(lead + m.why)}</div>
+        <button class="linkbtn" data-reset>↺ 이 미션 다시</button>
+      </div>`;
+  } else if(s.phase === 2){
+    right = `<div class="opts">${m.options.map((o,i) => voteRow(i, esc(o.text))).join('')}</div>${voteBar()}`;
+  } else {
+    const o = m.options[s.sol], t = TIERS[o.tier];
+    const rows = m.options.map((op,i) => {
+      const cls = (i === s.sol ? 'picked ' : 'muted ') + (op.tier === 'best' ? 'answer' : '');
+      return revealRow(i, cls, esc(op.text), TIERS[op.tier].label + ' ' + fmt(op.pts));
+    }).join('');
+    const total = missionPts(mi);
+    right = `<div class="opts">${rows}</div>
+      <div class="readout">
+        <div class="chose">STEP 2 · 해결책 · 다수결 결과</div>
+        <div class="row"><div class="trait"><strong>${t.word}</strong></div><div class="delta">${fmt(o.pts)}억</div></div>
+        <div class="desc">${esc(o.note)}</div>
+        <div class="sum">MISSION TOTAL ${fmt(total)}억 · FUNDS ${currentFunds()}억</div>
+        <button class="linkbtn" data-reset>↺ 이 미션 다시</button>
+      </div>`;
+  }
+
+  return `
+  <div class="frame">
+    <div class="q">
+      <div class="q-left">
+        <div class="eyebrow">Mission ${pad(mi+1)} / ${pad(MISSIONS.length)} · Step ${step}/2</div>
+        <h2>${esc(m.title)}</h2>
+        <p class="situation">${esc(m.situation)}</p>
+        <p class="ask">${ask}</p>
+        ${stamp}
+      </div>
+      <div class="q-right">${right}</div>
+    </div>
+  </div>`;
+}
+
+function voteRow(i, html){
+  return `<div class="optrow">
+    <button class="opt" data-opt="${i}"><i class="fill"></i><span class="num">${CIRC[i]}</span><span class="otext">${html}</span><span class="count">0</span></button>
+    <button class="minus" data-minus="${i}" aria-label="한 표 취소" disabled>−</button>
+  </div>`;
+}
+function voteBar(){
+  return `<div class="votebar"><span id="vtotal">TOTAL 0표</span><span id="vmsg">손을 든 만큼 눌러 주세요</span></div>`;
+}
+function revealRow(i, cls, html, tag){
+  return `<div class="optrow solo"><div class="opt ${cls}"><span class="num">${CIRC[i]}</span><span class="otext">${html}</span><span class="count rv">${esc(tag)}</span></div></div>`;
+}
+
+function resultHTML(){
+  const funds = currentFunds();
+  const g = gradeOf(funds);
+
+  let run = START; const cum = [START];
+  MISSIONS.forEach((_,i) => { run += missionPts(i); cum.push(run); });
+  const bars = cum.map((v,i) => {
+    const pct = Math.max(0, Math.min(100, v / MAX_FUNDS * 100));
+    const last = i === cum.length - 1;
+    return `<div class="bar-row ${last ? 'top' : ''}">
+      <span class="bar-label">${i === 0 ? '시작' : '미션 ' + i}</span>
+      <span class="bar-track"><span class="bar-fill" data-pct="${pct.toFixed(1)}"></span></span>
+      <span class="bar-val">${v < 0 ? '−' + Math.abs(v) : v}</span></div>`;
+  }).join('');
+
+  let nFull = 0, nBest = 0;
+  const rows = MISSIONS.map((m,i) => {
+    const s = M[i], res = clsResult(i);
+    if(res && res.key === 'full') nFull++;
+    const tier = s.sol !== null ? m.options[s.sol].tier : null;
+    if(tier === 'best') nBest++;
+    return `<div class="rv-row">
+      <span class="rn">${pad(i+1)}</span>
+      <span class="rt">${esc(m.short)}<small>${esc(ENVS[envIndex(i)].name)}</small></span>
+      <span class="rc">${res ? res.label : '-'}</span>
+      <span class="rs">${tier ? TIERS[tier].label : '-'}</span>
+      <span class="rp">${fmt(missionPts(i))}</span></div>`;
+  }).join('');
+
+  return `
+  <div class="frame result">
+    <div class="flash-in">
+      <div class="eyebrow">Final Result · 최종 결과</div>
+      <div class="bigtype">${g.en}</div>
+      <div class="ko">${g.ko}</div>
+      <div class="fund-line">최종 자금<b>${funds < 0 ? '−' + Math.abs(funds) : funds}</b>억 · 환경 분류 정답 ${nFull} / ${MISSIONS.length} · 최선의 선택 ${nBest} / ${MISSIONS.length}</div>
+      <p class="say">${esc(g.say)}</p>
+    </div>
+    <div class="res-grid">
+      <div class="blk"><h3>자금 추이</h3>${bars}</div>
+      <div class="blk"><h3>미션 복습</h3>
+        <div class="rv-head"><span></span><span>미션 · 정답 환경</span><span>분류</span><span>해결</span><span>자금</span></div>
+        ${rows}
+      </div>
+    </div>
+    <p class="wrapup"><b>기업 환경</b>은 기업이 스스로 바꿀 수 있는 <b>내부 환경</b>과, 기업이 읽고 적응해야 하는 <b>외부 환경</b>(경쟁·경제·정치·법·사회·문화·기술)으로 나뉜다. 어느 환경의 문제인지 먼저 알아야 알맞은 해결책이 보인다.</p>
+  </div>`;
+}
+
+/* ---------- 렌더 ---------- */
+function paint(){
+  resetVotes();
+  $content.innerHTML = frameHTML();
+
+  let figKey = 'B', mode = 'ask', op = .34;
+  if(idx === 0){ figKey = 'A'; mode = 'center'; op = .52; }
+  else if(idx === TOTAL - 1){ figKey = 'E'; mode = 'end'; op = .5; }
+  else { figKey = MISSIONS[idx-1].fig; }
+  $portrait.className = 'layer portrait ' + mode;
+  $portrait.style.setProperty('--po', op);
+  $portrait.style.opacity = op;
+  $portrait.innerHTML = FIGURES[figKey];
+  $scrim.className = 'layer scrim ' + mode;
+  document.querySelector('.hint').style.display = (idx === TOTAL - 1) ? 'none' : '';
+
+  $slateL.textContent = `Frame ${pad(idx+1)} / ${pad(TOTAL)}`;
+  $ticks.innerHTML = MISSIONS.map((_,i) => {
+    const c = (idx-1 === i) ? 'tick now' : (M[i].phase === 3 ? 'tick done' : 'tick');
+    return `<span class="${c}"></span>`;
+  }).join('');
+
+  updateVoteUI();
+
+  const fills = $content.querySelectorAll('.bar-fill');
+  if(fills.length){
+    requestAnimationFrame(() => setTimeout(() => { fills.forEach(f => f.style.width = f.dataset.pct + '%'); }, 120));
+  }
+  tweenFunds(currentFunds());
+}
+
+function syncNav(){
+  $back.style.visibility = idx === 0 ? 'hidden' : 'visible';
+  if(idx === 0){ $next.textContent = 'Start Game →'; $next.disabled = false; return; }
+  if(idx === TOTAL - 1){ $next.textContent = 'Play Again ↻'; $next.disabled = false; return; }
+  const s = M[idx-1];
+  if(s.phase === 0 || s.phase === 2){ $next.textContent = '다수결 확정 ✓'; $next.disabled = totalVotes() === 0; }
+  else if(s.phase === 1){ $next.textContent = '해결책 고르기 →'; $next.disabled = false; }
+  else { $next.textContent = idx === TOTAL - 2 ? '결과 보기 →' : 'Next →'; $next.disabled = false; }
+}
+
+function transition(fn){
+  if(busy) return;
+  busy = true;
+  if(REDUCED){ fn(); paint(); busy = false; return; }
+  runTracking();
+  $content.classList.add('out');
+  setTimeout(() => {
+    fn(); paint();
+    $content.classList.remove('out'); $content.classList.remove('in');
+    void $content.offsetWidth;
+    $content.classList.add('in');
+    $content.scrollTop = 0;
+    setTimeout(() => { busy = false; }, 220);
+  }, 210);
+}
+
+/* ---------- 조작 ---------- */
+function primary(){
+  if(busy) return;
+  if(idx === 0){ transition(() => { idx = 1; }); return; }
+  if(idx === TOTAL - 1){ restart(); return; }
+  const s = M[idx-1];
+  if(s.phase === 0 || s.phase === 2) confirmVotes();
+  else if(s.phase === 1) transition(() => { s.phase = 2; });
+  else transition(() => { idx++; });
+}
+function goBack(){ if(idx > 0) transition(() => { idx--; }); }
+function restart(){ transition(() => { M = freshState(); idx = 0; }); }
+
+$next.addEventListener('click', primary);
+$back.addEventListener('click', goBack);
+$content.addEventListener('click', e => {
+  const o = e.target.closest('[data-opt]');
+  if(o){ addVote(+o.dataset.opt); return; }
+  const mn = e.target.closest('[data-minus]');
+  if(mn){ removeVote(+mn.dataset.minus); return; }
+  if(e.target.closest('[data-reset]')) resetMission();
+});
+
+document.addEventListener('keydown', e => {
+  if(e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key;
+  if(k === 'ArrowRight' || k === 'Enter' || k === ' ' || k === 'PageDown'){ e.preventDefault(); primary(); }
+  else if(k === 'ArrowLeft' || k === 'PageUp'){ e.preventDefault(); goBack(); }
+  else if(k >= '1' && k <= '6'){ addVote(parseInt(k,10) - 1); }
+  else if(k === 'Backspace' || k === '-'){ e.preventDefault(); undoVote(); }
+  else if(k === 'r' || k === 'R'){ restart(); }
+  else if(k === 'f' || k === 'F'){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  }
+});
+
+paint();
+</script>
+</body>
+</html>
